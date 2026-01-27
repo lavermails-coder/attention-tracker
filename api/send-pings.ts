@@ -17,40 +17,6 @@ if (!admin.apps.length) {
   });
 }
 
-function isWithinActiveHours(
-  timezone: string,
-  activeHoursStart: string,
-  activeHoursEnd: string
-): boolean {
-  try {
-    const now = new Date();
-    const formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: timezone,
-      hour: 'numeric',
-      minute: 'numeric',
-      hour12: false,
-    });
-    const timeStr = formatter.format(now);
-    const [currentHour, currentMinute] = timeStr.split(':').map(Number);
-    const currentTime = currentHour * 60 + currentMinute;
-
-    const [startHour, startMin] = activeHoursStart.split(':').map(Number);
-    const [endHour, endMin] = activeHoursEnd.split(':').map(Number);
-    const startTime = startHour * 60 + startMin;
-    const endTime = endHour * 60 + endMin;
-
-    return currentTime >= startTime && currentTime <= endTime;
-  } catch {
-    return false;
-  }
-}
-
-// Random chance to send ping (called every 30 min, want ~2 pings per 10hr window)
-// 2 pings / 20 half-hour slots = 10% chance per slot
-function shouldSendPing(): boolean {
-  return Math.random() < 0.1;
-}
-
 export default async function handler(request: Request) {
   // Verify this is called by Vercel Cron
   const authHeader = request.headers.get('authorization');
@@ -74,26 +40,6 @@ export default async function handler(request: Request) {
 
     for (const token of tokens) {
       try {
-        // Get user preferences
-        const userData = await kv.hgetall(`user:${token}`);
-        if (!userData) continue;
-
-        const { timezone, activeHoursStart, activeHoursEnd } = userData as {
-          timezone: string;
-          activeHoursStart: string;
-          activeHoursEnd: string;
-        };
-
-        // Check if within active hours
-        if (!isWithinActiveHours(timezone, activeHoursStart, activeHoursEnd)) {
-          continue;
-        }
-
-        // Random chance to send
-        if (!shouldSendPing()) {
-          continue;
-        }
-
         // Send notification via FCM
         await admin.messaging().send({
           token: token as string,
