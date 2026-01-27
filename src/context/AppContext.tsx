@@ -22,8 +22,9 @@ import {
   generateWeeklySummary,
   getTodayDateString,
 } from '../lib/calculations';
-import { generateDailyPingSchedule, requestNotificationPermission } from '../lib/notifications';
+import { generateDailyPingSchedule } from '../lib/notifications';
 import { getExerciseById } from '../data/exercises';
+import { requestNotificationPermissionAndToken } from '../lib/firebase';
 
 type View = 'onboarding' | 'dashboard' | 'ping-response' | 'weekly-summary' | 'analysis' | 'experiment' | 'exercise-library' | 'exercise-detail' | 'settings' | 'history';
 
@@ -137,14 +138,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const completeOnboarding = useCallback(async (activeHoursStart: string, activeHoursEnd: string) => {
-    const hasPermission = await requestNotificationPermission();
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    // Get FCM token for push notifications
+    const fcmToken = await requestNotificationPermissionAndToken();
+    const hasPermission = !!fcmToken;
 
     const newSettings: UserSettings = {
       id: 'settings',
       activeHoursStart,
       activeHoursEnd,
       notificationsEnabled: hasPermission,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      timezone,
       onboardingCompleted: true,
       firstUseDate: getTodayDateString(),
       lastPingSchedule: null,
@@ -153,6 +158,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     // Generate initial ping schedule
     newSettings.lastPingSchedule = generateDailyPingSchedule(newSettings);
+
+    // Register token with backend for push notifications
+    if (fcmToken) {
+      try {
+        await fetch('/api/register-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            token: fcmToken,
+            timezone,
+            activeHoursStart,
+            activeHoursEnd,
+          }),
+        });
+      } catch (error) {
+        console.error('Failed to register token:', error);
+      }
+    }
 
     await saveSettings(newSettings);
     setSettings(newSettings);
