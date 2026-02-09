@@ -1,7 +1,7 @@
-import { kv } from '@vercel/kv';
+import { createClient } from 'redis';
 
 export const config = {
-  runtime: 'edge',
+  runtime: 'nodejs',
 };
 
 export default async function handler(request: Request) {
@@ -9,15 +9,19 @@ export default async function handler(request: Request) {
     return new Response('Method not allowed', { status: 405 });
   }
 
+  const redis = createClient({ url: process.env.REDIS_URL });
+  await redis.connect();
+
   try {
     const { token, timezone, activeHoursStart, activeHoursEnd } = await request.json();
 
     if (!token) {
+      await redis.disconnect();
       return new Response('Token required', { status: 400 });
     }
 
     // Store token with user preferences
-    await kv.hset(`user:${token}`, {
+    await redis.hSet(`user:${token}`, {
       token,
       timezone: timezone || 'UTC',
       activeHoursStart: activeHoursStart || '12:00',
@@ -26,7 +30,9 @@ export default async function handler(request: Request) {
     });
 
     // Add to active tokens set
-    await kv.sadd('active_tokens', token);
+    await redis.sAdd('active_tokens', token);
+
+    await redis.disconnect();
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
@@ -34,6 +40,7 @@ export default async function handler(request: Request) {
     });
   } catch (error) {
     console.error('Error registering token:', error);
+    await redis.disconnect();
     return new Response('Internal error', { status: 500 });
   }
 }

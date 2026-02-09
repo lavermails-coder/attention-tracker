@@ -6,6 +6,14 @@ export function calculateDayNumber(entries: AttentionEntry[]): number {
 }
 
 export function getNextDayNumber(entries: AttentionEntry[]): number {
+  const today = new Date().toISOString().split('T')[0];
+  const hasEntryToday = entries.some(e => e.timestamp.startsWith(today));
+
+  // If already logged today, return current day number
+  // Otherwise, it's a new day
+  if (hasEntryToday) {
+    return calculateDayNumber(entries);
+  }
   return calculateDayNumber(entries) + 1;
 }
 

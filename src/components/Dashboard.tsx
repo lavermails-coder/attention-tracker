@@ -1,22 +1,15 @@
 import { useApp } from '../context/AppContext';
 import { getCategoryById } from '../data/categories';
-import { calculateCategoryBreakdown } from '../lib/calculations';
 
 export function Dashboard() {
   const {
     currentDayNumber,
-    todayCompletion,
-    entries,
     activeExperiment,
+    currentIntention,
     setCurrentView,
     showMilestone,
     dismissMilestone,
   } = useApp();
-
-  // Get this week's top category
-  const recentEntries = entries.slice(-14); // Last 14 entries
-  const breakdown = calculateCategoryBreakdown(recentEntries);
-  const topCategory = breakdown[0] ? getCategoryById(breakdown[0].category) : null;
 
   // Show milestone modal
   if (showMilestone === 'week') {
@@ -111,9 +104,6 @@ export function Dashboard() {
               Day {currentDayNumber || 1}
               <span className="text-slate-400 dark:text-slate-500 text-2xl">/30</span>
             </div>
-            <div className="text-slate-500 dark:text-slate-400">
-              {todayCompletion.count}/2 pings today
-            </div>
           </div>
 
           {/* Progress bar */}
@@ -151,41 +141,43 @@ export function Dashboard() {
           </div>
         )}
 
-        {/* Top Category */}
-        {topCategory && recentEntries.length > 0 && (
-          <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 mb-6 shadow-sm">
-            <div className="text-sm text-slate-500 dark:text-slate-400 mb-2">
-              Recent top focus
+
+        {/* Current Intention */}
+        {currentIntention && (
+          <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-4 mb-6">
+            <div className="text-sm font-medium text-emerald-600 dark:text-emerald-400 mb-1">
+              Current Intention
             </div>
-            <div className="flex items-center gap-3">
-              <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
-                style={{ backgroundColor: `${topCategory.color}20` }}
-              >
-                {topCategory.emoji}
-              </div>
-              <div>
-                <div className="font-semibold text-slate-900 dark:text-white">
-                  {topCategory.label}
-                </div>
-                <div className="text-sm text-slate-500 dark:text-slate-400">
-                  {breakdown[0]?.percentage.toFixed(0)}% of attention
-                </div>
-              </div>
+            <div className="text-slate-900 dark:text-white">
+              {currentIntention.description || (currentIntention.category && getCategoryById(currentIntention.category)?.label) || 'Set'}
             </div>
           </div>
         )}
 
-        {/* Main Action Button */}
-        <button
-          onClick={() => setCurrentView('ping-response')}
-          className="w-full py-4 px-6 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition-colors text-lg mb-4"
-        >
-          Log Attention Now
-        </button>
+        {/* Main Action Buttons */}
+        <div className="space-y-3 mb-4">
+          <button
+            onClick={() => setCurrentView('ping-response')}
+            className="w-full py-4 px-6 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition-colors text-lg"
+          >
+            What is your attention on now?
+          </button>
+          <button
+            onClick={() => setCurrentView('set-intention')}
+            className="w-full py-4 px-6 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition-colors text-lg"
+          >
+            What would you like your attention to be on?
+          </button>
+        </div>
 
         {/* Navigation */}
         <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => setCurrentView('attention-overview')}
+            className="py-3 px-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium rounded-xl transition-colors shadow-sm"
+          >
+            Attention Overview
+          </button>
           <button
             onClick={() => setCurrentView('weekly-summary')}
             className="py-3 px-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium rounded-xl transition-colors shadow-sm"

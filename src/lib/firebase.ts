@@ -1,5 +1,20 @@
 import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
+import {
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  collection,
+  doc,
+  setDoc,
+  getDoc,
+  getDocs,
+  onSnapshot,
+  query,
+  orderBy,
+  writeBatch,
+} from 'firebase/firestore';
+import { getAuth, signInAnonymously, onAuthStateChanged, type User } from 'firebase/auth';
 
 // Firebase configuration - you'll get these from Firebase Console
 const firebaseConfig = {
@@ -13,6 +28,75 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+
+// Initialize Firestore with offline persistence
+export const firestore = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager()
+  })
+});
+
+// Initialize Auth
+export const auth = getAuth(app);
+
+// Current user state
+let currentUser: User | null = null;
+
+export function getCurrentUser(): User | null {
+  return currentUser;
+}
+
+export function getUserId(): string | null {
+  return currentUser?.uid || null;
+}
+
+// Sign in anonymously
+export async function signInAnonymouslyIfNeeded(): Promise<User | null> {
+  if (currentUser) return currentUser;
+
+  try {
+    const result = await signInAnonymously(auth);
+    currentUser = result.user;
+    console.log('Signed in anonymously:', currentUser.uid);
+    return currentUser;
+  } catch (error) {
+    console.error('Anonymous sign-in failed:', error);
+    return null;
+  }
+}
+
+// Listen to auth state changes
+export function onAuthChange(callback: (user: User | null) => void): () => void {
+  return onAuthStateChanged(auth, (user) => {
+    currentUser = user;
+    callback(user);
+  });
+}
+
+// Firestore helpers
+export function getUserCollection(collectionName: string) {
+  const userId = getUserId();
+  if (!userId) throw new Error('Not authenticated');
+  return collection(firestore, 'users', userId, collectionName);
+}
+
+export function getUserDoc(collectionName: string, docId: string) {
+  const userId = getUserId();
+  if (!userId) throw new Error('Not authenticated');
+  return doc(firestore, 'users', userId, collectionName, docId);
+}
+
+export {
+  collection,
+  doc,
+  setDoc,
+  getDoc,
+  getDocs,
+  onSnapshot,
+  query,
+  orderBy,
+  writeBatch
+};
 
 // Initialize Firebase Cloud Messaging
 let messaging: ReturnType<typeof getMessaging> | null = null;

@@ -1,19 +1,6 @@
-import Dexie, { type EntityTable } from 'dexie';
-import type { AttentionEntry, Experiment, UserSettings, WeeklySummary } from '../types';
-
-const db = new Dexie('AttentionTrackerDB') as Dexie & {
-  attentionEntries: EntityTable<AttentionEntry, 'id'>;
-  experiments: EntityTable<Experiment, 'id'>;
-  userSettings: EntityTable<UserSettings, 'id'>;
-  weeklySummaries: EntityTable<WeeklySummary, 'id'>;
-};
-
-db.version(1).stores({
-  attentionEntries: 'id, dayNumber, weekNumber, category, timestamp',
-  experiments: 'id, status, startDate',
-  userSettings: 'id',
-  weeklySummaries: 'id, weekNumber',
-});
+import type { AttentionEntry, Experiment, UserSettings, WeeklySummary, Intention } from '../types';
+import { syncEntry, syncExperiment, syncSettings, syncWeeklySummary, syncIntention } from './sync';
+import { db } from './dexie-db';
 
 export { db };
 
@@ -24,6 +11,7 @@ export async function getSettings(): Promise<UserSettings | undefined> {
 
 export async function saveSettings(settings: UserSettings): Promise<void> {
   await db.userSettings.put(settings);
+  syncSettings(settings).catch(console.error);
 }
 
 export async function getAllEntries(): Promise<AttentionEntry[]> {
@@ -43,6 +31,7 @@ export async function getEntriesInDateRange(startDate: string, endDate: string):
 
 export async function addEntry(entry: AttentionEntry): Promise<void> {
   await db.attentionEntries.add(entry);
+  syncEntry(entry).catch(console.error);
 }
 
 export async function getActiveExperiment(): Promise<Experiment | undefined> {
@@ -55,6 +44,7 @@ export async function getAllExperiments(): Promise<Experiment[]> {
 
 export async function saveExperiment(experiment: Experiment): Promise<void> {
   await db.experiments.put(experiment);
+  syncExperiment(experiment).catch(console.error);
 }
 
 export async function getWeeklySummary(weekNumber: number): Promise<WeeklySummary | undefined> {
@@ -63,6 +53,20 @@ export async function getWeeklySummary(weekNumber: number): Promise<WeeklySummar
 
 export async function saveWeeklySummary(summary: WeeklySummary): Promise<void> {
   await db.weeklySummaries.put(summary);
+  syncWeeklySummary(summary).catch(console.error);
+}
+
+export async function addIntention(intention: Intention): Promise<void> {
+  await db.intentions.add(intention);
+  syncIntention(intention).catch(console.error);
+}
+
+export async function getLatestIntention(): Promise<Intention | undefined> {
+  return db.intentions.orderBy('timestamp').reverse().first();
+}
+
+export async function getAllIntentions(): Promise<Intention[]> {
+  return db.intentions.orderBy('timestamp').reverse().toArray();
 }
 
 export async function clearAllData(): Promise<void> {
@@ -70,6 +74,7 @@ export async function clearAllData(): Promise<void> {
   await db.experiments.clear();
   await db.weeklySummaries.clear();
   await db.userSettings.clear();
+  await db.intentions.clear();
 }
 
 export async function exportAllData(): Promise<object> {

@@ -124,3 +124,11 @@ export interface ExerciseSuggestion {
   percentage: number | null;
   reason: string;
 }
+
+export interface Intention {
+  id: string;
+  timestamp: string;
+  category?: CategoryType;
+  description?: string;
+  createdAt: string;
+}

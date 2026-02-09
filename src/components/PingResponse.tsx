@@ -73,8 +73,7 @@ export function PingResponse() {
                 color: selectedCategory === category.id ? 'white' : category.color,
               }}
             >
-              <div className="text-2xl mb-1">{category.emoji}</div>
-              <div className="font-semibold text-sm">{category.label}</div>
+              <div className="font-semibold text-sm mb-1">{category.label}</div>
               <div className={`text-xs ${selectedCategory === category.id ? 'text-white/80' : 'opacity-70'}`}>
                 {category.description}
               </div>

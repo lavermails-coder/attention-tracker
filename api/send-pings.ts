@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv';
+import { createClient } from 'redis';
 import admin from 'firebase-admin';
 
 export const config = {
@@ -24,11 +24,16 @@ export default async function handler(request: Request) {
     return new Response('Unauthorized', { status: 401 });
   }
 
+  const redis = createClient({ url: process.env.REDIS_URL });
+  await redis.connect();
+
   try {
     // Get all active tokens
-    const tokens = await kv.smembers('active_tokens');
+    const tokensResult = await redis.sMembers('active_tokens');
+    const tokens = Array.isArray(tokensResult) ? tokensResult : Array.from(tokensResult);
 
     if (!tokens || tokens.length === 0) {
+      await redis.disconnect();
       return new Response(JSON.stringify({ message: 'No active tokens' }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
@@ -64,12 +69,14 @@ export default async function handler(request: Request) {
       } catch (error: any) {
         // If token is invalid, remove it
         if (error.code === 'messaging/registration-token-not-registered') {
-          await kv.srem('active_tokens', token);
-          await kv.del(`user:${token}`);
+          await redis.sRem('active_tokens', token);
+          await redis.del(`user:${token}`);
         }
         errors.push(`Token ${String(token).slice(0, 10)}...: ${error.message}`);
       }
     }
+
+    await redis.disconnect();
 
     return new Response(
       JSON.stringify({
@@ -85,6 +92,7 @@ export default async function handler(request: Request) {
     );
   } catch (error) {
     console.error('Error sending pings:', error);
+    await redis.disconnect();
     return new Response('Internal error', { status: 500 });
   }
 }

@@ -1,6 +1,6 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import type { AttentionEntry, CategoryType, Experiment, UserSettings, WeeklySummary, PingSchedule } from '../types';
+import type { AttentionEntry, CategoryType, Experiment, UserSettings, WeeklySummary, PingSchedule, Intention } from '../types';
 import {
   getSettings,
   saveSettings,
@@ -13,6 +13,8 @@ import {
   saveWeeklySummary,
   clearAllData,
   exportAllData,
+  addIntention as dbAddIntention,
+  getLatestIntention,
 } from '../lib/db';
 import {
   calculateDayNumber,
@@ -25,8 +27,9 @@ import {
 import { generateDailyPingSchedule } from '../lib/notifications';
 import { getExerciseById } from '../data/exercises';
 import { requestNotificationPermissionAndToken } from '../lib/firebase';
+import { initSync, addSyncListener, getSyncId } from '../lib/sync';
 
-type View = 'onboarding' | 'dashboard' | 'ping-response' | 'weekly-summary' | 'analysis' | 'experiment' | 'exercise-library' | 'exercise-detail' | 'settings' | 'history';
+type View = 'onboarding' | 'dashboard' | 'ping-response' | 'weekly-summary' | 'analysis' | 'experiment' | 'exercise-library' | 'exercise-detail' | 'settings' | 'history' | 'set-intention' | 'attention-overview';
 
 interface AppContextValue {
   // State
@@ -39,6 +42,8 @@ interface AppContextValue {
   selectedExerciseId: string | null;
   currentWeeklySummary: WeeklySummary | null;
   showMilestone: 'week' | '30day' | null;
+  syncId: string | null;
+  currentIntention: Intention | null;
 
   // Computed
   currentDayNumber: number;
@@ -58,6 +63,7 @@ interface AppContextValue {
   clearData: () => Promise<void>;
   dismissMilestone: () => void;
   refreshData: () => Promise<void>;
+  setIntention: (category: string | null, description?: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -72,6 +78,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const [currentWeeklySummary, setCurrentWeeklySummary] = useState<WeeklySummary | null>(null);
   const [showMilestone, setShowMilestone] = useState<'week' | '30day' | null>(null);
+  const [syncId, setSyncId] = useState<string | null>(null);
+  const [currentIntention, setCurrentIntentionState] = useState<Intention | null>(null);
+  const syncInitialized = useRef(false);
 
   // Computed values
   const currentDayNumber = calculateDayNumber(entries);
@@ -81,17 +90,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function loadData() {
       try {
-        const [loadedSettings, loadedEntries, loadedActiveExp, loadedAllExps] = await Promise.all([
+        // Initialize sync first
+        if (!syncInitialized.current) {
+          syncInitialized.current = true;
+          await initSync();
+          setSyncId(getSyncId());
+        }
+
+        const [loadedSettings, loadedEntries, loadedActiveExp, loadedAllExps, loadedIntention] = await Promise.all([
           getSettings(),
           getAllEntries(),
           getActiveExperiment(),
           getAllExperiments(),
+          getLatestIntention(),
         ]);
 
         setSettings(loadedSettings || null);
         setEntries(loadedEntries);
         setActiveExperiment(loadedActiveExp || null);
         setAllExperiments(loadedAllExps);
+        setCurrentIntentionState(loadedIntention || null);
 
         // Determine initial view
         if (!loadedSettings?.onboardingCompleted) {
@@ -124,6 +142,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
 
     loadData();
+
+    // Listen for sync updates from other devices
+    const unsubscribe = addSyncListener(() => {
+      // Reload data when sync updates arrive
+      loadData();
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const refreshData = useCallback(async () => {
@@ -378,6 +404,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setShowMilestone(null);
   }, []);
 
+  const setIntention = useCallback(async (category: string | null, description?: string) => {
+    const intention: Intention = {
+      id: uuidv4(),
+      timestamp: new Date().toISOString(),
+      category: category as CategoryType | undefined,
+      description,
+      createdAt: new Date().toISOString(),
+    };
+
+    await dbAddIntention(intention);
+    setCurrentIntentionState(intention);
+  }, []);
+
   const value: AppContextValue = {
     isLoading,
     settings,
@@ -388,6 +427,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     selectedExerciseId,
     currentWeeklySummary,
     showMilestone,
+    syncId,
+    currentIntention,
     currentDayNumber,
     todayCompletion,
     setCurrentView,
@@ -403,6 +444,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     clearData,
     dismissMilestone,
     refreshData,
+    setIntention,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

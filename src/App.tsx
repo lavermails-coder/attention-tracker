@@ -9,6 +9,8 @@ import { ExerciseLibrary } from './components/ExerciseLibrary';
 import { ExerciseDetail } from './components/ExerciseDetail';
 import { Settings } from './components/Settings';
 import { History } from './components/History';
+import { SetIntention } from './components/SetIntention';
+import { AttentionOverview } from './components/AttentionOverview';
 
 function AppContent() {
   const { isLoading, currentView } = useApp();
@@ -45,6 +47,10 @@ function AppContent() {
       return <Settings />;
     case 'history':
       return <History />;
+    case 'set-intention':
+      return <SetIntention />;
+    case 'attention-overview':
+      return <AttentionOverview />;
     default:
       return <Dashboard />;
   }

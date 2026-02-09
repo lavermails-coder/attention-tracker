@@ -2,14 +2,16 @@ import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 
 export function Settings() {
-  const { settings, setCurrentView, updateSettings, exportData, clearData } = useApp();
-
-  const [activeHoursStart, setActiveHoursStart] = useState(settings?.activeHoursStart || '12:00');
-  const [activeHoursEnd, setActiveHoursEnd] = useState(settings?.activeHoursEnd || '22:00');
+  const { setCurrentView, exportData, clearData, syncId } = useApp();
+  const [copied, setCopied] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
-  const handleSaveHours = async () => {
-    await updateSettings({ activeHoursStart, activeHoursEnd });
+  const copyToClipboard = () => {
+    if (syncId) {
+      navigator.clipboard.writeText(syncId);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const handleExport = async () => {
@@ -34,63 +36,34 @@ export function Settings() {
           Settings
         </h1>
 
-        {/* Active Hours */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl p-6 mb-6 shadow-sm">
-          <h2 className="font-semibold text-slate-900 dark:text-white mb-4">
-            Active Hours
-          </h2>
-          <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
-            Pings will be sent randomly within these hours.
-          </p>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <label className="text-slate-700 dark:text-slate-300">Start Time</label>
-              <input
-                type="time"
-                value={activeHoursStart}
-                onChange={(e) => setActiveHoursStart(e.target.value)}
-                className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <label className="text-slate-700 dark:text-slate-300">End Time</label>
-              <input
-                type="time"
-                value={activeHoursEnd}
-                onChange={(e) => setActiveHoursEnd(e.target.value)}
-                className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-              />
-            </div>
-          </div>
-
-          <button
-            onClick={handleSaveHours}
-            className="mt-4 w-full py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors"
-          >
-            Save Hours
-          </button>
-        </div>
-
-        {/* Notifications Status */}
+        {/* Sync */}
         <div className="bg-white dark:bg-slate-800 rounded-xl p-6 mb-6 shadow-sm">
           <h2 className="font-semibold text-slate-900 dark:text-white mb-2">
-            Notifications
+            Cloud Sync
           </h2>
-          <div className="flex items-center justify-between">
-            <span className="text-slate-600 dark:text-slate-300">Status</span>
-            <span className={`text-sm font-medium ${
-              settings?.notificationsEnabled
-                ? 'text-green-600 dark:text-green-400'
-                : 'text-amber-600 dark:text-amber-400'
-            }`}>
-              {settings?.notificationsEnabled ? 'Enabled' : 'Disabled'}
-            </span>
-          </div>
-          {!settings?.notificationsEnabled && (
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-              Enable notifications in your browser settings to receive ping reminders.
-            </p>
+          <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
+            Your data syncs automatically across all your devices.
+          </p>
+          {syncId ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-slate-500 dark:text-slate-400">Status</span>
+                <span className="text-green-600 dark:text-green-400 font-medium">Connected</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 dark:text-slate-400 text-sm">Sync ID</span>
+                <button
+                  onClick={copyToClipboard}
+                  className="text-xs font-mono bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                >
+                  {copied ? 'Copied!' : syncId.slice(0, 12) + '...'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="text-sm text-amber-600 dark:text-amber-400">
+              Connecting...
+            </div>
           )}
         </div>
 
