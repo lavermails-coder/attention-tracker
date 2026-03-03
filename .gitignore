@@ -27,3 +27,9 @@ dist-ssr
 .env
 .env.local
 .env.production
+
+# iOS build artifacts
+ios/App/Pods
+ios/App/App/public
+ios/App/App/capacitor.config.json
+ios/DerivedData

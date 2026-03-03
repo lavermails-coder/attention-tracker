@@ -13,16 +13,20 @@ export default async function handler(request: Request) {
   await redis.connect();
 
   try {
-    const { token, timezone, activeHoursStart, activeHoursEnd } = await request.json();
+    const { token, platform, timezone, activeHoursStart, activeHoursEnd } = await request.json();
 
     if (!token) {
       await redis.disconnect();
       return new Response('Token required', { status: 400 });
     }
 
+    // Determine platform: 'ios' for native APNs, 'web' for FCM
+    const tokenPlatform = platform || 'web';
+
     // Store token with user preferences
     await redis.hSet(`user:${token}`, {
       token,
+      platform: tokenPlatform,
       timezone: timezone || 'UTC',
       activeHoursStart: activeHoursStart || '12:00',
       activeHoursEnd: activeHoursEnd || '22:00',
@@ -31,6 +35,9 @@ export default async function handler(request: Request) {
 
     // Add to active tokens set
     await redis.sAdd('active_tokens', token);
+
+    // Also add to platform-specific set for targeted sending
+    await redis.sAdd(`active_tokens:${tokenPlatform}`, token);
 
     await redis.disconnect();
 
