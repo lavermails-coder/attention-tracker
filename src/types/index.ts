@@ -1,12 +1,17 @@
 export type CategoryType =
-  | 'phone_media'
-  | 'worries_negative'
-  | 'work_study'
-  | 'people_relationships'
-  | 'planning_future'
-  | 'past_memories'
-  | 'body_present_moment'
-  | 'observing_neutral';
+  | 'acknowledgement'
+  | 'desires'
+  | 'significance'
+  | 'resistances'
+  | 'control'
+  | 'safety_security'
+  | 'connection'
+  | 'achievement'
+  | 'pleasure'
+  | 'identity'
+  | 'judgment'
+  | 'exhaustion'
+  | 'emptiness';
 
 export type ExperimentStatus = 'active' | 'completed' | 'abandoned';
 

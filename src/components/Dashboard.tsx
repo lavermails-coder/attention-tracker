@@ -1,11 +1,9 @@
 import { useApp } from '../context/AppContext';
-import { getCategoryById } from '../data/categories';
 
 export function Dashboard() {
   const {
     currentDayNumber,
     activeExperiment,
-    currentIntention,
     setCurrentView,
     showMilestone,
     dismissMilestone,
@@ -141,19 +139,6 @@ export function Dashboard() {
           </div>
         )}
 
-
-        {/* Current Intention */}
-        {currentIntention && (
-          <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-4 mb-6">
-            <div className="text-sm font-medium text-emerald-600 dark:text-emerald-400 mb-1">
-              Current Intention
-            </div>
-            <div className="text-slate-900 dark:text-white">
-              {currentIntention.description || (currentIntention.category && getCategoryById(currentIntention.category)?.label) || 'Set'}
-            </div>
-          </div>
-        )}
-
         {/* Main Action Buttons */}
         <div className="space-y-3 mb-4">
           <button
@@ -197,12 +182,6 @@ export function Dashboard() {
             className="py-3 px-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium rounded-xl transition-colors shadow-sm"
           >
             Exercise Library
-          </button>
-          <button
-            onClick={() => setCurrentView('history')}
-            className="py-3 px-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium rounded-xl transition-colors shadow-sm"
-          >
-            View History
           </button>
         </div>
       </div>

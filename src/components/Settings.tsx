@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { signOut, getCurrentUser } from '../lib/firebase';
 
 export function Settings() {
   const { setCurrentView, exportData, clearData, syncId } = useApp();
@@ -110,6 +111,26 @@ export function Settings() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Account */}
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-6 mb-6 shadow-sm">
+          <h2 className="font-semibold text-slate-900 dark:text-white mb-4">
+            Account
+          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-sm text-slate-600 dark:text-slate-300">
+                {getCurrentUser()?.email || 'Signed in'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={signOut}
+            className="w-full py-3 px-4 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-medium rounded-lg transition-colors"
+          >
+            Sign Out
+          </button>
         </div>
 
         {/* About */}

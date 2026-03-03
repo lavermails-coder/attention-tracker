@@ -1,6 +1,6 @@
 import {
-  signInAnonymouslyIfNeeded,
   getUserId,
+  getCurrentUser,
   getUserCollection,
   getUserDoc,
   setDoc,
@@ -28,7 +28,7 @@ function notifySyncListeners() {
 // Initialize sync - call this on app start
 export async function initSync(): Promise<void> {
   try {
-    const user = await signInAnonymouslyIfNeeded();
+    const user = getCurrentUser();
     if (!user) {
       console.warn('Sync disabled: not authenticated');
       return;

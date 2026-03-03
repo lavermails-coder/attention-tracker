@@ -25,14 +25,19 @@ export function calculateCategoryPercentages(entries: AttentionEntry[]): Record<
   const total = entries.length;
   if (total === 0) {
     return {
-      phone_media: 0,
-      worries_negative: 0,
-      work_study: 0,
-      people_relationships: 0,
-      planning_future: 0,
-      past_memories: 0,
-      body_present_moment: 0,
-      observing_neutral: 0,
+      acknowledgement: 0,
+      desires: 0,
+      significance: 0,
+      resistances: 0,
+      control: 0,
+      safety_security: 0,
+      connection: 0,
+      achievement: 0,
+      pleasure: 0,
+      identity: 0,
+      judgment: 0,
+      exhaustion: 0,
+      emptiness: 0,
     };
   }
 
@@ -43,8 +48,9 @@ export function calculateCategoryPercentages(entries: AttentionEntry[]): Record<
 
   const percentages: Record<string, number> = {};
   const allCategories: CategoryType[] = [
-    'phone_media', 'worries_negative', 'work_study', 'people_relationships',
-    'planning_future', 'past_memories', 'body_present_moment', 'observing_neutral'
+    'acknowledgement', 'desires', 'significance', 'resistances',
+    'control', 'safety_security', 'connection', 'achievement',
+    'pleasure', 'identity', 'judgment', 'exhaustion', 'emptiness'
   ];
 
   allCategories.forEach(category => {
@@ -124,52 +130,6 @@ export function suggestExercise(entries: AttentionEntry[]): ExerciseSuggestion |
 
   const percentages = calculateCategoryPercentages(entries);
 
-  // Priority order for pattern matching
-  if (percentages.worries_negative > 30) {
-    return {
-      exerciseId: 'resentment_release',
-      targetPattern: 'worries_negative',
-      percentage: percentages.worries_negative,
-      reason: `You spent ${percentages.worries_negative.toFixed(1)}% of your attention on worries and negative thoughts.`,
-    };
-  }
-
-  if (percentages.phone_media > 30) {
-    return {
-      exerciseId: 'presence_training',
-      targetPattern: 'phone_media',
-      percentage: percentages.phone_media,
-      reason: `You spent ${percentages.phone_media.toFixed(1)}% of your attention on phone and media consumption.`,
-    };
-  }
-
-  if (percentages.planning_future > 40) {
-    return {
-      exerciseId: 'presence_training',
-      targetPattern: 'planning_future',
-      percentage: percentages.planning_future,
-      reason: `You spent ${percentages.planning_future.toFixed(1)}% of your attention on planning and future thinking.`,
-    };
-  }
-
-  if (percentages.past_memories > 25) {
-    return {
-      exerciseId: 'expanding_consciousness',
-      targetPattern: 'past_memories',
-      percentage: percentages.past_memories,
-      reason: `You spent ${percentages.past_memories.toFixed(1)}% of your attention on past events and memories.`,
-    };
-  }
-
-  if (percentages.body_present_moment < 5) {
-    return {
-      exerciseId: 'first_day_on_earth',
-      targetPattern: 'body_present_moment',
-      percentage: percentages.body_present_moment,
-      reason: `You spent only ${percentages.body_present_moment.toFixed(1)}% of your attention on present-moment awareness.`,
-    };
-  }
-
   // Check for scattered pattern (3+ categories >20%)
   const categoriesAbove20 = Object.values(percentages).filter(p => p > 20).length;
   if (categoriesAbove20 >= 3) {
@@ -181,13 +141,13 @@ export function suggestExercise(entries: AttentionEntry[]): ExerciseSuggestion |
     };
   }
 
-  // Default fallback
+  // Default fallback - suggest based on top category
   const topCategory = Object.entries(percentages).sort((a, b) => b[1] - a[1])[0];
   return {
     exerciseId: 'expanding_consciousness',
     targetPattern: topCategory[0] as CategoryType,
-    percentage: null,
-    reason: "Let's expand your awareness and break habitual patterns.",
+    percentage: topCategory[1],
+    reason: `Your attention is often on ${topCategory[0].replace('_', '/')} (${topCategory[1].toFixed(1)}%).`,
   };
 }
 
@@ -228,9 +188,9 @@ export function calculateExperimentResults(
   const duringPercent = duringPercentages[targetPattern] || 0;
   const change = duringPercent - beforePercent;
 
-  // For negative patterns, decrease is improvement
-  const negativePatterns: CategoryType[] = ['worries_negative', 'phone_media', 'planning_future', 'past_memories'];
-  const isImprovement = negativePatterns.includes(targetPattern)
+  // For patterns where decrease might be desired
+  const decreasePatterns: CategoryType[] = ['resistances', 'judgment'];
+  const isImprovement = decreasePatterns.includes(targetPattern)
     ? change < 0
     : change > 0;
 

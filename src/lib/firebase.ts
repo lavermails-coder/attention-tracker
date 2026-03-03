@@ -14,16 +14,18 @@ import {
   orderBy,
   writeBatch,
 } from 'firebase/firestore';
-import { getAuth, signInAnonymously, onAuthStateChanged, type User } from 'firebase/auth';
+import { getAuth, signInWithPopup, GoogleAuthProvider, signOut as firebaseSignOut, onAuthStateChanged } from 'firebase/auth';
+import type { User } from 'firebase/auth';
+export type { User };
 
 // Firebase configuration - you'll get these from Firebase Console
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: (import.meta.env.VITE_FIREBASE_API_KEY || '').trim(),
+  authDomain: (import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '').trim(),
+  projectId: (import.meta.env.VITE_FIREBASE_PROJECT_ID || '').trim(),
+  storageBucket: (import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '').trim(),
+  messagingSenderId: (import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '').trim(),
+  appId: (import.meta.env.VITE_FIREBASE_APP_ID || '').trim(),
 };
 
 // Initialize Firebase
@@ -50,18 +52,28 @@ export function getUserId(): string | null {
   return currentUser?.uid || null;
 }
 
-// Sign in anonymously
-export async function signInAnonymouslyIfNeeded(): Promise<User | null> {
-  if (currentUser) return currentUser;
+// Google Auth Provider
+const googleProvider = new GoogleAuthProvider();
 
+// Sign in with Google
+export async function signInWithGoogle(): Promise<User | null> {
   try {
-    const result = await signInAnonymously(auth);
+    const result = await signInWithPopup(auth, googleProvider);
     currentUser = result.user;
-    console.log('Signed in anonymously:', currentUser.uid);
     return currentUser;
   } catch (error) {
-    console.error('Anonymous sign-in failed:', error);
+    console.error('Google sign-in failed:', error);
     return null;
+  }
+}
+
+// Sign out
+export async function signOut(): Promise<void> {
+  try {
+    await firebaseSignOut(auth);
+    currentUser = null;
+  } catch (error) {
+    console.error('Sign out failed:', error);
   }
 }
 
